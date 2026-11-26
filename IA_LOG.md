@@ -7,7 +7,7 @@
 * **Objetivo:** Entender o cronograma de entregas, definir os primeiros passos no GitHub e estruturar as entidades iniciais do banco de dados para o tema *Breaking Bad / Better Call Saul* (Guerra de Territórios).
 * **Resultado:** Definição da estrutura inicial do README e levantamento das tabelas principais (`gangue`, `jogador`, `territorio`, `inimigo`).
 
-## Registro de Uso de IA 
+## Registro de Uso de IA - Anderson
 
 ### 1. Estruturação Base das Classes Java (POO)
 * **Por que utilizei:** Para acelerar a criação da estrutura inicial do RPG (herança, encapsulamento e relacionamento entre as classes `Personagem`, `Jogador`, `Inimigo`, `Gangue`, `Territorio`, `Item` e o fluxo principal na `Main`), garantindo uma base sólida de Programação Orientada a Objetos para depois adaptar às regras específicas do nosso tema.
