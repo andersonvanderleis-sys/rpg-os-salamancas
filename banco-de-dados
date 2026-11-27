@@ -1,0 +1,89 @@
+DROP DATABASE IF EXISTS rpg_salamancas;
+CREATE DATABASE rpg_salamancas;
+USE rpg_salamancas;
+
+CREATE TABLE gangue (
+    id_gangue INT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    bonus_ataque INT NOT NULL,
+    dinheiro_inicial DECIMAL(10, 2) NOT NULL
+);
+
+CREATE TABLE territorio (
+    id_territorio INT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    nivel_dificuldade INT NOT NULL,
+    recompensa_dinheiro DECIMAL(10, 2) NOT NULL,
+    gangue_dominante_id INT,
+    FOREIGN KEY (gangue_dominante_id) REFERENCES gangue(id_gangue)
+);
+
+CREATE TABLE inimigo (
+    id INT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    vida_atual INT NOT NULL,
+    vida_maxima INT NOT NULL,
+    dano INT NOT NULL,
+    id_territorio INT,
+    FOREIGN KEY (id_territorio) REFERENCES territorio(id_territorio)
+);
+
+CREATE TABLE item (
+    id_item INT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
+    valor_efeito INT NOT NULL,
+    duracao_turnos INT NOT NULL
+);
+
+CREATE TABLE jogador (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    vida_atual INT NOT NULL,
+    vida_maxima INT NOT NULL,
+    dinheiro DECIMAL(10, 2) NOT NULL,
+    nivel_respeito INT NOT NULL,
+    turnos_dobro_dano INT NOT NULL DEFAULT 0,
+    gangue_id INT,
+    FOREIGN KEY (gangue_id) REFERENCES gangue(id_gangue)
+);
+
+CREATE TABLE inventario_jogador (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    jogador_id INT NOT NULL,
+    item_id INT NOT NULL,
+    FOREIGN KEY (jogador_id) REFERENCES jogador(id),
+    FOREIGN KEY (item_id) REFERENCES item(id_item)
+);
+
+INSERT INTO gangue (id_gangue, nome, bonus_ataque, dinheiro_inicial) VALUES
+(1, 'Cartel Salamanca', 15, 250.00),
+(2, 'Los Pollos Hermanos (Gus)', 12, 450.00),
+(3, 'Império Heisenberg', 13, 350.00),
+(4, 'Gangue do Tio Jack', 16, 200.00),
+(5, 'Madrigal Electromotive', 11, 500.00),
+(6, 'Associados Saul Goodman', 10, 400.00);
+
+INSERT INTO territorio (id_territorio, nome, nivel_dificuldade, recompensa_dinheiro, gangue_dominante_id) VALUES
+(1, 'Deserto de Tohajiilee', 1, 200.00, 3),
+(2, 'Restaurante Los Pollos Hermanos', 2, 280.00, 2),
+(3, 'Superlaboratório Subterrâneo', 3, 350.00, 2),
+(4, 'Lava-Jato A1A', 2, 350.00, 3),
+(5, 'Escritório do Saul Goodman', 3, 400.00, 6),
+(6, 'Complexo da Gangue do Jack', 4, 550.00, 4),
+(7, 'Mansão Don Eladio (México)', 5, 800.00, 5);
+
+INSERT INTO inimigo (id, nome, vida_atual, vida_maxima, dano, id_territorio) VALUES
+(1, 'Krazy-8 & Emilio', 75, 75, 10, 1),
+(2, 'Tyrus Kitt', 95, 95, 12, 2),
+(3, 'Victor (Capanga do Gus)', 105, 105, 13, 3),
+(4, 'Skyler & Kuby (Segurança)', 110, 110, 14, 4),
+(5, 'Huell Babineaux', 130, 130, 16, 5),
+(6, 'Tio Jack Welker', 150, 150, 20, 6),
+(7, 'Don Eladio Vuente', 180, 180, 24, 7);
+
+INSERT INTO item (id_item, nome, tipo, valor_efeito, duracao_turnos) VALUES
+(1, 'Balde do Los Pollos Hermanos', 'CURA', 40, 0),
+(2, 'Chá de Camomila da Lydia', 'CURA', 25, 0),
+(3, 'Cristal Azul (Metanfetamina)', 'BUFF_DANO', 2, 2),
+(4, 'Cantil do Deserto', 'CURA', 30, 0);
