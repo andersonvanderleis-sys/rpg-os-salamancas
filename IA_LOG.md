@@ -26,3 +26,12 @@ Auxiliar na transição do jogo `rpg-os-salamancas` de armazenamento temporário
 * **Padrão DAO (`JogadorDAO.java`):** Separação da lógica de acesso a dados (`SELECT`, `INSERT` e `UPDATE`) das regras de negócio, permitindo carregar gangues, territórios e inimigos do banco, além de salvar o progresso do jogador, conquistas de território e itens coletados no inventário.
 * **Refatoração da `Main.java`:** Substituição das listas estáticas iniciais por chamadas diretas ao `JogadorDAO`, garantindo que cada ação relevante do jogador seja persistida no MySQL em tempo real.
 * **Versionamento no GitHub:** Resolução de conflito de nomenclatura de classe (`JogaDAO` -> `JogadorDAO`), autenticação da IDE com o GitHub e envio das novas classes para o repositório remoto via Commit e Push.
+
+
+## Registro de Uso de IA - Anderson
+
+### 1. Refinamento Visual da Interface de Terminal (CLI/ANSI)
+* **Por que utilizei:** Para modernizar a identidade visual do RPG na classe `Main`, substituindo as cores antigas por um degradê em azul e roxo escuro no banner principal e menus, além de corrigir o desalinhamento das bordas causado pela diferença de largura dos emojis no console através de cálculo de *code points* com `Math.floor` no método `linhaCaixa`.
+
+### 2. Sincronização e Merge da Branch no GitHub
+* **Por que utilizei:** Para resolver o bloqueio de envio (`Push Rejected`) no IntelliJ IDEA ao juntar as alterações locais com o histórico remoto da branch `main` via `Merge`, garantindo que todas as atualizações visuais fossem salvas com segurança no repositório `rpg-os-salamancas-novo` sem perda de código.
