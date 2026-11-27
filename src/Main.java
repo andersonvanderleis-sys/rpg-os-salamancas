@@ -34,14 +34,14 @@ public class Main {
                 nomeJogador = "Salamanca";
             }
 
-            System.out.println("\n" + AMARELO + "╔════════════════════════════════ ESCOLHA SUA GANGUE ════════════════════╗" + RESET);
+            System.out.println("\n" + AMARELO + "╔════════════════════════════════ ESCOLHA SUA GANGUE ═════════════════════════╗" + RESET);
             for (int i = 0; i < gangues.size(); i++) {
                 Gangue g = gangues.get(i);
                 System.out.println("  " + CIANO + (i + 1) + " - " + NEGRITO + g.getNome() + RESET
                         + " (Bônus Ataque: " + VERMELHO + "+" + g.getBonusAtaque() + RESET
                         + " | Dinheiro Inicial: " + VERDE + "$" + g.getDinheiroInicial() + RESET + ")");
             }
-            System.out.println(AMARELO + "╚════════════════════════════════════════════════════════════════════════╝" + RESET);
+            System.out.println(AMARELO + "╚═════════════════════════════════════════════════════════════════════════════╝" + RESET);
             int escolhaGangue = lerOpcao(scanner, "Opção: ", 1, gangues.size()) - 1;
             Gangue gangueEscolhida = gangues.get(escolhaGangue);
 
@@ -218,7 +218,7 @@ public class Main {
         System.out.println("  Seu saldo: " + VERDE + "$" + jogador.getDinheiro() + RESET);
         System.out.println("  " + CIANO + "1" + RESET + " - 🦺 Colete Balístico (+25 Vida Máxima)          - " + VERDE + "$300" + RESET);
         System.out.println("  " + CIANO + "2" + RESET + " - 🍗 Balde Los Pollos (Cura +40 na mochila)      - " + VERDE + "$150" + RESET);
-        System.out.println("  " + CIANO + "3" + RESET + " - 💎 Cristal Azul (Buff Dano na mochila)         - " + VERDE + "$400" + RESET);
+        System.out.println("  " + CIANO + "3" + RESET + " - 💎 Cristal Azul (Buff (2X) Dano  na mochila)    - " + VERDE + "$400" + RESET);
         System.out.println("  " + VERMELHO + "0" + RESET + " - Voltar");
         System.out.println(AMARELO + "╚══════════════════════════════════════════════════════════════════╝" + RESET);
 
