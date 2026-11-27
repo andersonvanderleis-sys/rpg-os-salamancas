@@ -8,6 +8,16 @@ public class Main {
     private static JogadorDAO dao = new JogadorDAO();
     private static int idJogadorBanco = -1;
 
+    // Cores ANSI para estilizar o console
+    private static final String RESET = "\u001B[0m";
+    private static final String VERMELHO = "\u001B[31m";
+    private static final String VERDE = "\u001B[32m";
+    private static final String VERDE_FORTE = "\u001B[92m";
+    private static final String AMARELO = "\u001B[33m";
+    private static final String ROXO = "\u001B[35m";
+    private static final String CIANO = "\u001B[36m";
+    private static final String NEGRITO = "\u001B[1m";
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
@@ -17,51 +27,73 @@ public class Main {
             List<Territorio> territorios = dao.listarTerritorios(gangues);
             List<Inimigo> inimigos = dao.listarInimigos();
 
-            System.out.println("=== GUERRA DE TERRITÓRIOS: ALBUQUERQUE ===");
-            System.out.print("Digite o nome do seu personagem: ");
-            String nomeJogador = scanner.nextLine();
+            imprimirBanner();
 
-            System.out.println("\nEscolha sua Gangue:");
+            System.out.print(NEGRITO + "Digite o nome do seu personagem: " + RESET);
+            String nomeJogador = scanner.nextLine();
+            if (nomeJogador.trim().isEmpty()) {
+                nomeJogador = "Salamanca";
+            }
+
+            System.out.println("\n" + AMARELO + "╔════════════════════════════════ ESCOLHA SUA GANGUE ════════════════════╗" + RESET);
             for (int i = 0; i < gangues.size(); i++) {
                 Gangue g = gangues.get(i);
-                System.out.println((i + 1) + " - " + g.getNome() + " (Bônus Ataque: +" + g.getBonusAtaque() + " | Dinheiro Inicial: $" + g.getDinheiroInicial() + ")");
+                System.out.println("  " + CIANO + (i + 1) + " - " + NEGRITO + g.getNome() + RESET
+                        + " (Bônus Ataque: " + VERMELHO + "+" + g.getBonusAtaque() + RESET
+                        + " | Dinheiro Inicial: " + VERDE + "$" + g.getDinheiroInicial() + RESET + ")");
             }
-            int escolhaGangue = scanner.nextInt() - 1;
+            System.out.println(AMARELO + "╚════════════════════════════════════════════════════════════════════════╝" + RESET);
+            int escolhaGangue = lerOpcao(scanner, "Opção: ", 1, gangues.size()) - 1;
             Gangue gangueEscolhida = gangues.get(escolhaGangue);
 
             Jogador jogador = new Jogador(1, nomeJogador, 100, 100, gangueEscolhida.getDinheiroInicial(), 0, gangueEscolhida);
 
             // Salva o jogador no MySQL e pega o ID gerado
             idJogadorBanco = dao.salvarNovoJogador(jogador);
-            System.out.println("\nBem-vindo ao cartel, " + jogador.getNome() + " (" + jogador.getGangue().getNome() + ")! [Salvo no Banco ID #" + idJogadorBanco + "]");
+            System.out.println("\n" + VERDE + "✔ Bem-vindo ao cartel, " + NEGRITO + jogador.getNome() + RESET + VERDE
+                    + " (" + jogador.getGangue().getNome() + ")! [Salvo no Banco ID #" + idJogadorBanco + "]" + RESET);
 
             boolean jogando = true;
+            boolean zerouJogo = false;
+
             while (jogando && jogador.estaVivo()) {
-                System.out.println("\n-----------------------------------------");
-                System.out.println("STATUS: Vida: " + jogador.getVidaAtual() + "/" + jogador.getVidaMaxima()
-                        + " | Dinheiro: $" + jogador.getDinheiro()
-                        + " | Respeito: " + jogador.getNivelRespeito()
-                        + " | Itens na mochila: " + jogador.getInventario().size());
-                System.out.println("1 - Invadir Território");
-                System.out.println("2 - Abrir Mochila (Usar Item)");
-                System.out.println("3 - Recuperar Vida no Médico clandestino ($200)");
-                System.out.println("0 - Sair do Jogo");
-                System.out.print("Escolha uma ação: ");
-                int opcao = scanner.nextInt();
+                if (todosTerritoriosDominados(territorios, jogador.getGangue())) {
+                    zerouJogo = true;
+                    jogando = false;
+                    break;
+                }
+
+                System.out.println("\n" + ROXO + "╔══════════════════════ STATUS DO CARTEL ══════════════════════╗" + RESET);
+                System.out.println("  Vida:     " + gerarBarraVida(jogador.getVidaAtual(), jogador.getVidaMaxima())
+                        + " (" + jogador.getVidaAtual() + "/" + jogador.getVidaMaxima() + ")");
+                System.out.println("  Dinheiro: " + VERDE + "$" + jogador.getDinheiro() + RESET
+                        + " | Respeito: " + CIANO + jogador.getNivelRespeito() + RESET
+                        + " | Itens na mochila: " + AMARELO + jogador.getInventario().size() + RESET);
+                System.out.println(ROXO + "╠════════════════════════════ AÇÕES ═══════════════════════════╣" + RESET);
+                System.out.println("  " + CIANO + "1" + RESET + " - 🔫 Invadir Território");
+                System.out.println("  " + CIANO + "2" + RESET + " - 🎒 Abrir Mochila (Usar Item)");
+                System.out.println("  " + CIANO + "3" + RESET + " - 💉 Recuperar Vida no Médico clandestino ($200)");
+                System.out.println("  " + VERMELHO + "0" + RESET + " - 💾 Sair do Jogo");
+                System.out.println(ROXO + "╚══════════════════════════════════════════════════════════════╝" + RESET);
+                int opcao = lerOpcao(scanner, NEGRITO + "Escolha uma ação: " + RESET, 0, 3);
 
                 if (opcao == 1) {
-                    System.out.println("\nEscolha o território para invadir:");
+                    System.out.println("\n" + AMARELO + "╔═════════════════════════════ ESCOLHA O TERRITÓRIO PARA INVADIR ═══════════════════════════╗      " + RESET);
                     for (int i = 0; i < territorios.size(); i++) {
                         Territorio t = territorios.get(i);
-                        System.out.println((i + 1) + " - " + t.getNome()
-                                + " [Dono atual: " + t.getGangueDominante().getNome() + "]"
-                                + " (Recompensa: $" + t.getRecompensaDinheiro() + ")");
+                        System.out.println("  " + CIANO + (i + 1) + " - " + NEGRITO + t.getNome() + RESET
+                                + " [Dono atual: " + AMARELO + t.getGangueDominante().getNome() + RESET + "]"
+                                + " (Recompensa: " + VERDE + "$" + t.getRecompensaDinheiro() + RESET + ")");
                     }
-                    int escolhaTerritorio = scanner.nextInt() - 1;
-                    Territorio alvo = territorios.get(escolhaTerritorio);
+                    System.out.println("  " + VERMELHO + "0" + RESET + " - Voltar");
+                    System.out.println(AMARELO + "╚═══════════════════════════════════════════════════════════════════════════════════════════╝" + RESET);
+                    int escolhaTerritorio = lerOpcao(scanner, "Alvo: ", 0, territorios.size());
+                    if (escolhaTerritorio == 0) continue;
+
+                    Territorio alvo = territorios.get(escolhaTerritorio - 1);
 
                     if (alvo.getGangueDominante().getIdGangue() == jogador.getGangue().getIdGangue()) {
-                        System.out.println("Este território já pertence à sua gangue!");
+                        System.out.println(VERDE + "✔ Este território já pertence à sua gangue!" + RESET);
                         continue;
                     }
 
@@ -76,7 +108,7 @@ public class Main {
                     if (chefe != null) {
                         batalhar(scanner, jogador, chefe, alvo);
                     } else {
-                        System.out.println("Território sem defesa! Você assumiu o controle.");
+                        System.out.println(VERDE + "🚩 Território sem defesa! Você assumiu o controle." + RESET);
                         alvo.setGangueDominante(jogador.getGangue());
                         dao.atualizarDonoTerritorio(alvo.getIdTerritorio(), jogador.getGangue().getIdGangue());
                     }
@@ -89,9 +121,9 @@ public class Main {
                         jogador.setDinheiro(jogador.getDinheiro() - 200);
                         jogador.setVidaAtual(jogador.getVidaMaxima());
                         dao.atualizarJogador(idJogadorBanco, jogador);
-                        System.out.println("Vida restaurada ao máximo e salva no banco!");
+                        System.out.println(VERDE + "✔ Vida restaurada ao máximo e salva no banco!" + RESET);
                     } else {
-                        System.out.println("Dinheiro insuficiente!");
+                        System.out.println(VERMELHO + "✖ Dinheiro insuficiente!" + RESET);
                     }
                 } else if (opcao == 0) {
                     dao.atualizarJogador(idJogadorBanco, jogador);
@@ -99,51 +131,103 @@ public class Main {
                 }
             }
 
-            if (!jogador.estaVivo()) {
+            if (zerouJogo) {
                 dao.atualizarJogador(idJogadorBanco, jogador);
-                System.out.println("\nVOCÊ MORREU! Fim de jogo em Albuquerque.");
+                imprimirTelaVitoriaFinal(jogador);
+            } else if (!jogador.estaVivo()) {
+                dao.atualizarJogador(idJogadorBanco, jogador);
+                System.out.println("\n" + VERMELHO + NEGRITO + "💀 VOCÊ MORREU! Fim de jogo em Albuquerque." + RESET);
             } else {
-                System.out.println("\nJogo encerrado. Progresso salvo no MySQL!");
+                System.out.println("\n" + VERDE + "💾 Jogo encerrado. Progresso salvo no MySQL!" + RESET);
             }
 
         } catch (SQLException e) {
-            System.out.println("Erro ao conectar ou salvar no banco de dados MySQL: " + e.getMessage());
+            System.out.println(VERMELHO + "Erro ao conectar ou salvar no banco de dados MySQL: " + e.getMessage() + RESET);
             e.printStackTrace();
         } finally {
             scanner.close();
         }
     }
 
+    private static boolean todosTerritoriosDominados(List<Territorio> territorios, Gangue gangueJogador) {
+        for (Territorio t : territorios) {
+            if (t.getGangueDominante() == null || t.getGangueDominante().getIdGangue() != gangueJogador.getIdGangue()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void imprimirTelaVitoriaFinal(Jogador jogador) {
+        System.out.println("\n" + VERDE_FORTE + NEGRITO);
+        System.out.println("╔══════════════════════════════════════════════════════════════════════════╗");
+        System.out.println("║                 IMPÉRIO CONQUISTADO • FIM DE JOGO (VITÓRIA)              ║");
+        System.out.println("╠══════════════════════════════════════════════════════════════════════════╣");
+        System.out.println("║  Você derrotou todas as gangues rivais e agora é o DONO DO MORRO!        ║");
+        System.out.println("║  Não sobrou ninguém para desafiar o trono do cartel.                     ║");
+        System.out.println("╠══════════════════════════════════════════════════════════════════════════╣");
+        System.out.println("║  Chefe Supremo: " + String.format("%-57s", jogador.getNome()) + "║");
+        System.out.println("║  Facção Vencedora: " + String.format("%-54s", jogador.getGangue().getNome()) + "║");
+        System.out.println("║  Fortuna Acumulada: $" + String.format("%-52.2f", jogador.getDinheiro()) + "║");
+        System.out.println("║  Respeito nas Ruas: " + String.format("%-53d", jogador.getNivelRespeito()) + "║");
+        System.out.println("╚══════════════════════════════════════════════════════════════════════════╝" + RESET);
+    }
+
+    // Método que impede o jogo de quebrar se o usuário digitar número fora da lista ou letra
+    private static int lerOpcao(Scanner scanner, String mensagem, int min, int max) {
+        while (true) {
+            System.out.print(mensagem);
+            if (scanner.hasNextInt()) {
+                int valor = scanner.nextInt();
+                if (valor >= min && valor <= max) {
+                    return valor;
+                }
+            } else {
+                scanner.next();
+            }
+            System.out.println(VERMELHO + "✖ Opção inválida! Digite um número entre " + min + " e " + max + "." + RESET);
+        }
+    }
+
     private static void batalhar(Scanner scanner, Jogador jogador, Inimigo inimigo, Territorio territorio) throws SQLException {
-        System.out.println("\n>>> INVASÃO INICIADA EM: " + territorio.getNome() + " <<<");
-        System.out.println("Chefe local: " + inimigo.getNome() + " (Vida: " + inimigo.getVidaAtual() + ")");
+        int vidaMaxInimigo = Math.max(100, inimigo.getVidaAtual());
+
+        System.out.println("\n" + VERMELHO + NEGRITO + "╔══════════════════════════════════════════════════════════════╗");
+        System.out.println("  >>> INVASÃO INICIADA EM: " + territorio.getNome().toUpperCase() + " <<<");
+        System.out.println("  Chefe local: " + inimigo.getNome() + " (Vida: " + inimigo.getVidaAtual() + ")");
+        System.out.println("╚══════════════════════════════════════════════════════════════╝" + RESET);
 
         while (jogador.estaVivo() && inimigo.estaVivo()) {
-            System.out.println("\n[Sua Vida: " + jogador.getVidaAtual() + " | Vida de " + inimigo.getNome() + ": " + inimigo.getVidaAtual() + "]");
-            System.out.println("1 - Atacar | 2 - Usar Item da Mochila | 3 - Fugir");
-            int acao = scanner.nextInt();
+            System.out.println("\n----------------------------------------------------------------");
+            System.out.println("  Você:               " + gerarBarraVida(jogador.getVidaAtual(), jogador.getVidaMaxima())
+                    + " (" + jogador.getVidaAtual() + "/" + jogador.getVidaMaxima() + ")");
+            System.out.println("  " + String.format("%-18s", inimigo.getNome() + ":")
+                    + gerarBarraVida(inimigo.getVidaAtual(), vidaMaxInimigo) + " (" + Math.max(0, inimigo.getVidaAtual()) + ")");
+            System.out.println("----------------------------------------------------------------");
+            System.out.println("  " + CIANO + "1" + RESET + " - 🔫 Atacar  |  " + CIANO + "2" + RESET + " - 🎒 Usar Item da Mochila  |  " + AMARELO + "3" + RESET + " - 🏃 Fugir");
+            int acao = lerOpcao(scanner, "Ação: ", 1, 3);
 
             if (acao == 1) {
                 int danoJogador = jogador.atacar();
                 inimigo.setVidaAtual(inimigo.getVidaAtual() - danoJogador);
-                System.out.println("Você atacou " + inimigo.getNome() + " e causou " + danoJogador + " de dano!");
+                System.out.println(VERDE + "💥 Você atacou " + inimigo.getNome() + " e causou " + danoJogador + " de dano!" + RESET);
 
                 if (inimigo.estaVivo()) {
                     int danoInimigo = inimigo.atacar();
                     jogador.setVidaAtual(jogador.getVidaAtual() - danoInimigo);
-                    System.out.println(inimigo.getNome() + " revidou e causou " + danoInimigo + " de dano!");
+                    System.out.println(VERMELHO + "🩸 " + inimigo.getNome() + " revidou e causou " + danoInimigo + " de dano!" + RESET);
                 }
             } else if (acao == 2) {
                 abrirMochila(scanner, jogador);
             } else {
-                System.out.println("Você recuou da invasão!");
+                System.out.println(AMARELO + "🏃 Você recuou da invasão!" + RESET);
                 dao.atualizarJogador(idJogadorBanco, jogador);
                 return;
             }
         }
 
         if (jogador.estaVivo() && !inimigo.estaVivo()) {
-            System.out.println("\nVITÓRIA! Você derrotou " + inimigo.getNome() + " e dominou " + territorio.getNome() + "!");
+            System.out.println("\n" + VERDE + NEGRITO + "🏆 VITÓRIA! Você derrotou " + inimigo.getNome() + " e dominou " + territorio.getNome() + "!" + RESET);
             territorio.setGangueDominante(jogador.getGangue());
             jogador.setDinheiro(jogador.getDinheiro() + territorio.getRecompensaDinheiro());
             jogador.setNivelRespeito(jogador.getNivelRespeito() + 10);
@@ -163,7 +247,7 @@ public class Main {
                 jogador.adicionarItem(new Item(1, "Balde do Los Pollos Hermanos", "CURA", 40, 0));
                 dao.adicionarItemInventario(idJogadorBanco, 1);
             } else {
-                System.out.println("Nenhum item encontrado na cozinha do Los Pollos desta vez.");
+                System.out.println(AMARELO + "Nenhum item encontrado na cozinha do Los Pollos desta vez." + RESET);
             }
         } else if (territorio.getIdTerritorio() == 3) {
             if (chance <= 10) {
@@ -173,7 +257,7 @@ public class Main {
                 jogador.adicionarItem(new Item(2, "Chá de Camomila da Lydia", "CURA", 25, 0));
                 dao.adicionarItemInventario(idJogadorBanco, 2);
             } else {
-                System.out.println("Nenhum item encontrado no laboratório subterrâneo desta vez.");
+                System.out.println(AMARELO + "Nenhum item encontrado no laboratório subterrâneo desta vez." + RESET);
             }
         } else if (territorio.getIdTerritorio() == 1) {
             if (chance <= 40) {
@@ -186,18 +270,43 @@ public class Main {
     private static void abrirMochila(Scanner scanner, Jogador jogador) {
         List<Item> mochila = jogador.getInventario();
         if (mochila.isEmpty()) {
-            System.out.println("Sua mochila está vazia!");
+            System.out.println(AMARELO + "🎒 Sua mochila está vazia!" + RESET);
             return;
         }
-        System.out.println("\n--- MOCHILA ---");
+        System.out.println("\n" + CIANO + "╔══════════════════════ MOCHILA ══════════════════════╗" + RESET);
         for (int i = 0; i < mochila.size(); i++) {
-            System.out.println((i + 1) + " - " + mochila.get(i).getNome());
+            System.out.println("  " + CIANO + (i + 1) + " - " + NEGRITO + mochila.get(i).getNome() + RESET);
         }
-        System.out.println("0 - Voltar");
-        System.out.print("Escolha o item para usar: ");
-        int escolha = scanner.nextInt();
-        if (escolha > 0 && escolha <= mochila.size()) {
+        System.out.println("  " + VERMELHO + "0" + RESET + " - Voltar");
+        System.out.println(CIANO + "╚═════════════════════════════════════════════════════╝" + RESET);
+        int escolha = lerOpcao(scanner, "Escolha o item para usar: ", 0, mochila.size());
+        if (escolha > 0) {
             jogador.usarItem(escolha - 1);
         }
+    }
+
+    private static void imprimirBanner() {
+        System.out.println(VERDE_FORTE + NEGRITO);
+        System.out.println("╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗");
+        System.out.println("║   ██████╗ ███████╗    ███████╗ █████╗ ██╗      █████╗ ███╗   ███╗ █████╗ ███╗   ██╗ ██████╗ █████╗ ███████╗  ║");
+        System.out.println("║  ██╔═══██╗██╔════╝    ██╔════╝██╔══██╗██║     ██╔══██╗████╗ ████║██╔══██╗████╗  ██║██╔════╝██╔══██╗██╔════╝  ║");
+        System.out.println("║  ██║   ██║███████╗    ███████╗███████║██║     ███████║██╔████╔██║███████║██╔██╗ ██║██║     ███████║███████╗  ║");
+        System.out.println("║  ██║   ██║╚════██║    ╚════██║██╔══██║██║     ██╔══██║██║╚██╔╝██║██╔══██║██║╚██╗██║██║     ██╔══██║╚════██║  ║");
+        System.out.println("║  ╚██████╔╝███████║    ███████║██║  ██║███████╗██║  ██║██║ ╚═╝ ██║██║  ██║██║ ╚████║╚██████╗██║  ██║███████║  ║");
+        System.out.println("║   ╚═════╝ ╚══════╝    ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝╚══════╝  ║");
+        System.out.println("║                                      GUERRA DE TERRITÓRIOS: ALBUQUERQUE                                      ║");
+        System.out.println("╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝" + RESET);
+    }
+
+    private static String gerarBarraVida(int atual, int maxima) {
+        int blocos = 10;
+        int preenchidos = (int) Math.round(((double) Math.max(0, atual) / maxima) * blocos);
+        String cor = atual > maxima * 0.5 ? VERDE : (atual > maxima * 0.25 ? AMARELO : VERMELHO);
+        StringBuilder sb = new StringBuilder(cor + "[");
+        for (int i = 0; i < blocos; i++) {
+            sb.append(i < preenchidos ? "█" : "░");
+        }
+        sb.append("]" + RESET);
+        return sb.toString();
     }
 }
