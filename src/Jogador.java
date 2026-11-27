@@ -8,6 +8,10 @@ public class Jogador extends Personagem {
     private List<Item> inventario;
     private int turnosDobroDano;
 
+    public void setVidaMaxima(int vidaMaxima) {
+        this.vidaMaxima = vidaMaxima;
+    }
+
     public Jogador(int id, String nome, int vidaAtual, int vidaMaxima, double dinheiro, int nivelRespeito, Gangue gangue) {
         super(id, nome, vidaAtual, vidaMaxima);
         this.dinheiro = dinheiro;

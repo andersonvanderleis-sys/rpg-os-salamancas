@@ -2,7 +2,7 @@ public abstract class Personagem {
     private int id;
     private String nome;
     private int vidaAtual;
-    private int vidaMaxima;
+    int vidaMaxima;
 
     public Personagem(int id, String nome, int vidaAtual, int vidaMaxima) {
         this.id = id;
