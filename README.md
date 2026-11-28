@@ -25,7 +25,7 @@ Jogo de RPG de texto desenvolvido em **Java** com persistência de dados em **My
 
 ### 1. Configurar o Banco de Dados
 1. Abra o **MySQL Workbench** e conecte-se à sua instância local (`localhost:3306`).
-2. Abra o arquivo `banco-de-dados` disponível na raiz deste repositório, copie todo o script SQL e execute-o na aba de consulta (`Query`) para criar o banco `rpg_salamancas`, as tabelas e os dados iniciais.
+2. Abra o arquivo `banco-de-dados-SQL` disponível na raiz deste repositório, copie todo o script SQL e execute-o na aba de consulta (`Query`) para criar o banco `rpg_salamancas`, as tabelas e os dados iniciais.
 
 ### 2. Configurar a Conexão no Código
 1. Abra o projeto no **IntelliJ IDEA** (ou na sua IDE Java de preferência).
