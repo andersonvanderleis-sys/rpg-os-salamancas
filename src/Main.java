@@ -223,12 +223,12 @@ public class Main {
                 : 10;
         int id = territorio.getIdTerritorio();
 
-        if (bonusGangueRival >= 14 || id >= 6) {
-            return 11 + random.nextInt(5);
-        } else if (bonusGangueRival >= 11 || id >= 3) {
-            return 8 + random.nextInt(3);
+        if (bonusGangueRival >= 14 || id >= 4) {
+            return 12 + random.nextInt(5);
+        } else if (bonusGangueRival >= 11 || id >= 2) {
+            return 8 + random.nextInt(4);
         } else {
-            return 3 + random.nextInt(5);
+            return 5 + random.nextInt(4);
         }
     }
 
