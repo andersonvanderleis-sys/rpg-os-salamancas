@@ -23,11 +23,13 @@ public class Jogador extends Personagem {
 
     @Override
     public int atacar() {
-        int danoBase = 15 + (gangue != null ? gangue.getBonusAtaque() : 0);
+        // Dano base equilibrado (8 + bônus da gangue)
+        int danoBase = 8 + (gangue != null ? gangue.getBonusAtaque() : 0);
         if (turnosDobroDano > 0) {
             turnosDobroDano--;
-            System.out.println("🔥 [EFEITO CRISTAL AZUL] Dano dobrado! (Restam " + turnosDobroDano + " ataques com buff)");
-            return danoBase * 2;
+            int danoBuff = (int) Math.round(danoBase * 1.5);
+            System.out.println("🔥 [EFEITO CRISTAL AZUL] Dano ampliado em 1.5x! (Restam " + turnosDobroDano + " ataques com buff)");
+            return danoBuff;
         }
         return danoBase;
     }
@@ -48,7 +50,7 @@ public class Jogador extends Personagem {
             System.out.println("🍗 Você usou " + item.getNome() + " e recuperou " + item.getValorEfeito() + " de vida!");
         } else if (item.getTipo().equals("BUFF_DANO")) {
             this.turnosDobroDano = item.getDuracaoAtaques();
-            System.out.println("💎 Você usou " + item.getNome() + "! Seus próximos " + item.getDuracaoAtaques() + " ataques causarão o DOBRO de dano!");
+            System.out.println("💎 Você usou " + item.getNome() + "! Seus próximos " + item.getDuracaoAtaques() + " ataques causarão 1.5x de dano!");
         }
     }
 

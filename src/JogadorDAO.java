@@ -98,7 +98,7 @@ public class JogadorDAO {
     // 4. Salvar um novo jogador no banco e retornar o ID gerado
     public int salvarNovoJogador(Jogador j) throws SQLException {
         if (modoOffline) {
-            return 999; // ID fictício para jogar offline
+            return 999;
         }
         String sql = "INSERT INTO jogador (nome, vida_atual, vida_maxima, dinheiro, nivel_respeito, turnos_dobro_dano, gangue_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = ConexaoDB.conectar();
@@ -191,7 +191,6 @@ public class JogadorDAO {
     }
 
     // 9. Carregar os itens salvos na mochila do jogador
-    // 9. Carregar os itens salvos na mochila do jogador
     public void carregarInventarioJogador(int idJogador, Jogador jogador) throws SQLException {
         if (modoOffline) return;
 
@@ -214,5 +213,50 @@ public class JogadorDAO {
                 }
             }
         }
+    }
+
+    // 10. DELETE do CRUD: Excluir um save e seu inventário do banco
+    public void deletarSaveJogador(int idJogador) throws SQLException {
+        if (modoOffline) return;
+
+        String sqlInv = "DELETE FROM inventario_jogador WHERE jogador_id = ?";
+        String sqlJog = "DELETE FROM jogador WHERE id = ?";
+
+        try (Connection conn = ConexaoDB.conectar()) {
+            try (PreparedStatement stmtInv = conn.prepareStatement(sqlInv)) {
+                stmtInv.setInt(1, idJogador);
+                stmtInv.executeUpdate();
+            }
+            try (PreparedStatement stmtJog = conn.prepareStatement(sqlJog)) {
+                stmtJog.setInt(1, idJogador);
+                stmtJog.executeUpdate();
+            }
+        }
+    }
+
+    // 11. Ranking dos Chefões de Albuquerque (JOIN + ORDER BY)
+    public List<String> listarRankingChefes() throws SQLException {
+        List<String> ranking = new ArrayList<>();
+        if (modoOffline) return ranking;
+
+        String sql = "SELECT j.nome, g.nome AS gangue, j.nivel_respeito, j.dinheiro " +
+                "FROM jogador j " +
+                "INNER JOIN gangue g ON j.gangue_id = g.id_gangue " +
+                "ORDER BY j.nivel_respeito DESC, j.dinheiro DESC LIMIT 5";
+
+        try (Connection conn = ConexaoDB.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            int pos = 1;
+            while (rs.next()) {
+                ranking.add(String.format("#%d %-16s | %-22s | Resp: %3d | $%8.2f",
+                        pos++,
+                        rs.getString("nome"),
+                        rs.getString("gangue"),
+                        rs.getInt("nivel_respeito"),
+                        rs.getDouble("dinheiro")));
+            }
+        }
+        return ranking;
     }
 }

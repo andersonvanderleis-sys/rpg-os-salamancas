@@ -1,5 +1,6 @@
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -8,6 +9,7 @@ public class Main {
     private static final Random random = new Random();
     private static final JogadorDAO dao = new JogadorDAO();
     private static int idJogadorBanco = -1;
+    private static final LinkedList<String> historicoAcoes = new LinkedList<>();
 
     private static final String RESET = "\u001B[0m";
     private static final String VERMELHO = "\u001B[31m";
@@ -35,17 +37,20 @@ public class Main {
             boolean iniciarNovoJogo = true;
 
             System.out.println("\n" + DOURADO + "╔════════════════════════════════ MENU PRINCIPAL ════════════════════════════════╗" + RESET);
-            linhaCaixa(DOURADO, "  " + CIANO + "[1]" + RESET + " 🆕 Novo Jogo", 79);
-            linhaCaixa(DOURADO, "  " + CIANO + "[2]" + RESET + " 📂 Carregar Save", 80);
+            linhaCaixa(DOURADO, "  " + CIANO + "[1]" + RESET + " 🆕 Novo Jogo", 80);
+            linhaCaixa(DOURADO, "  " + CIANO + "[2]" + RESET + " 📂 Carregar / Gerenciar Saves", 80);
             System.out.println(DOURADO + "╚════════════════════════════════════════════════════════════════════════════════╝" + RESET);
             int modoInicio = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Opção: " + RESET, 1, 2);
-            scanner.nextLine(); // Limpa o Enter do teclado
+            scanner.nextLine();
 
             if (modoInicio == 2) {
-                List<Jogador> saves = dao.listarJogadoresSalvos(gangues);
-                if (saves.isEmpty()) {
-                    System.out.println("\n" + AMARELO + NEGRITO + "  ⚠️  Você ainda não possui nenhum save registrado no banco! Iniciando um Novo Jogo..." + RESET);
-                } else {
+                while (true) {
+                    List<Jogador> saves = dao.listarJogadoresSalvos(gangues);
+                    if (saves.isEmpty()) {
+                        System.out.println("\n" + AMARELO + NEGRITO + "  ⚠️  Você ainda não possui nenhum save registrado! Iniciando um Novo Jogo..." + RESET);
+                        break;
+                    }
+
                     System.out.println("\n" + CIANO + "╔════════════════════════════════ SAVES DISPONÍVEIS ═══════════════════════════════╗" + RESET);
                     for (int i = 0; i < saves.size(); i++) {
                         Jogador s = saves.get(i);
@@ -59,18 +64,34 @@ public class Main {
                     linhaCaixa(CIANO, "  " + VERMELHO_FORTE + "[0]" + RESET + " Cancelar e criar Novo Jogo", 82);
                     System.out.println(CIANO + "╚══════════════════════════════════════════════════════════════════════════════════╝" + RESET);
 
-                    int escolhaSave = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Escolha o save: " + RESET, 0, saves.size());
-                    scanner.nextLine(); // Limpa o Enter do teclado
+                    int escolhaSave = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Selecione o save: " + RESET, 0, saves.size());
+                    scanner.nextLine();
 
-                    if (escolhaSave > 0) {
-                        jogador = saves.get(escolhaSave - 1);
+                    if (escolhaSave == 0) {
+                        break;
+                    }
+
+                    Jogador saveSelecionado = saves.get(escolhaSave - 1);
+                    System.out.println("\n  " + VERDE_FORTE + "[1]" + RESET + " ▶️  Carregar e Jogar com " + NEGRITO + saveSelecionado.getNome() + RESET);
+                    System.out.println("  " + VERMELHO_FORTE + "[2]" + RESET + " 🗑️  Apagar este save permanentemente");
+                    System.out.println("  " + CINZA + "[0]" + RESET + " Voltar");
+                    int acaoSave = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Ação: " + RESET, 0, 2);
+                    scanner.nextLine();
+
+                    if (acaoSave == 1) {
+                        jogador = saveSelecionado;
                         idJogadorBanco = jogador.getId();
                         dao.carregarInventarioJogador(idJogadorBanco, jogador);
                         iniciarNovoJogo = false;
 
+                        registrarHistorico("Save carregado: " + jogador.getNome() + " retornou a Albuquerque.");
                         animarCarregamento("Carregando progresso do cartel de " + jogador.getNome());
                         digitarLento("\n" + VERDE_FORTE + NEGRITO + "✔ Save carregado com sucesso! Bem-vindo de volta, "
                                 + jogador.getNome() + " [ID #" + idJogadorBanco + "]" + RESET, 15);
+                        break;
+                    } else if (acaoSave == 2) {
+                        dao.deletarSaveJogador(saveSelecionado.getId());
+                        System.out.println(VERMELHO_FORTE + "  🗑️  Save de '" + saveSelecionado.getNome() + "' removido do banco de dados!" + RESET);
                     }
                 }
             }
@@ -108,6 +129,7 @@ public class Main {
                     dao.atualizarDonoTerritorio(t.getIdTerritorio(), rival.getIdGangue());
                 }
 
+                registrarHistorico("Cartel fundado por " + jogador.getNome() + " (" + gangueEscolhida.getNome() + ").");
                 digitarLento("\n" + VERDE_FORTE + NEGRITO + "✔ Bem-vindo ao cartel, " + jogador.getNome()
                         + " (" + jogador.getGangue().getNome() + ")! [ID #" + idJogadorBanco + "]" + RESET, 15);
             }
@@ -126,6 +148,7 @@ public class Main {
                 String patente = obterPatente(jogador.getNivelRespeito());
 
                 imprimirRadarTerritorios(territorios, jogador.getGangue());
+                imprimirHistoricoRecente();
 
                 System.out.println("\n" + ROXO + "╔═══════════════════════════════════ STATUS DO CARTEL ═══════════════════════════════════╗" + RESET);
                 linhaCaixa(ROXO, String.format("  Chefe:    %s%-24s%s  Patente: %s%s%s",
@@ -142,9 +165,10 @@ public class Main {
                 linhaCaixa(ROXO, "  " + CIANO + "[2]" + RESET + " 🎒 Abrir Mochila (Usar Item)", 88);
                 linhaCaixa(ROXO, "  " + CIANO + "[3]" + RESET + " 💉 Médico Clandestino (Recuperar Vida Total - " + VERDE + "$200" + RESET + ")", 88);
                 linhaCaixa(ROXO, "  " + CIANO + "[4]" + RESET + " 💼 Mercado Negro (Saul Goodman)", 88);
+                linhaCaixa(ROXO, "  " + CIANO + "[5]" + RESET + " 🏆 Ranking dos Chefões de Albuquerque", 88);
                 linhaCaixa(ROXO, "  " + VERMELHO_FORTE + "[0]" + RESET + " 💾 Salvar e Sair do Jogo", 88);
                 System.out.println(ROXO + "╚════════════════════════════════════════════════════════════════════════════════════════╝" + RESET);
-                int opcao = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Escolha uma ação: " + RESET, 0, 4);
+                int opcao = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Escolha uma ação: " + RESET, 0, 5);
 
                 if (opcao == 1) {
                     System.out.println("\n" + AMARELO + "╔═════════════════════════════ ESCOLHA O ALVO DA INVASÃO ═════════════════════════════╗" + RESET);
@@ -174,29 +198,36 @@ public class Main {
                         continue;
                     }
 
-                    Inimigo chefe = null;
+                    Inimigo chefeBase = null;
                     for (Inimigo ini : inimigos) {
                         if (ini.getIdTerritorio() == alvo.getIdTerritorio() && ini.estaVivo()) {
-                            chefe = ini;
+                            chefeBase = ini;
                             break;
                         }
                     }
 
-                    if (chefe != null) {
+                    if (chefeBase != null) {
                         animarCarregamento("Mobilizando soldados para " + alvo.getNome());
 
-                        int vidaCapanga = 45 + (alvo.getIdTerritorio() * 10);
-                        int danoCapanga = 8 + (alvo.getIdTerritorio() * 2);
+                        // Dificuldade reforçada: Capangas mais resistentes
+                        int vidaCapanga = 65 + (alvo.getIdTerritorio() * 15);
+                        int danoCapanga = 11 + (alvo.getIdTerritorio() * 3);
                         Inimigo capanga = new Inimigo(900 + alvo.getIdTerritorio(), "Capanga de " + alvo.getGangueDominante().getNome(), vidaCapanga, danoCapanga, alvo.getIdTerritorio());
 
-                        digitarLento("\n" + AMARELO + NEGRITO + "  ⚠️  ONDA 1/2: Um capanga bloqueia a entrada de " + alvo.getNome() + "!" + RESET, 12);
+                        digitarLento("\n" + AMARELO + NEGRITO + "  ⚠️  ONDA 1/2: Um capanga fortemente armado bloqueia a entrada de " + alvo.getNome() + "!" + RESET, 12);
                         boolean venceuCapanga = lutarContraInimigo(scanner, jogador, capanga, alvo, false);
 
                         if (venceuCapanga && jogador.estaVivo()) {
-                            digitarLento("\n" + VERMELHO_FORTE + NEGRITO + "  🔥 ONDA 2/2: O chefe do território apareceu para defender o ponto!" + RESET, 15);
+                            // Dificuldade reforçada: Chefe com +45% de vida e +4 de dano
+                            int vidaChefeReforcada = (int) Math.round(chefeBase.getVidaAtual() * 1.45);
+                            int danoChefeReforcado = chefeBase.atacar() + 4;
+                            Inimigo chefe = new Inimigo(chefeBase.getId(), chefeBase.getNome(), vidaChefeReforcada, danoChefeReforcado, alvo.getIdTerritorio());
+
+                            digitarLento("\n" + VERMELHO_FORTE + NEGRITO + "  🔥 ONDA 2/2: " + chefe.getNome() + " apareceu pessoalmente para defender o ponto!" + RESET, 15);
                             boolean venceuChefe = lutarContraInimigo(scanner, jogador, chefe, alvo, true);
 
                             if (venceuChefe && jogador.estaVivo()) {
+                                chefeBase.setVidaAtual(0);
                                 verificarContraAtaqueRival(scanner, jogador, territorios, gangues);
                             }
                         }
@@ -214,6 +245,7 @@ public class Main {
                         jogador.setDinheiro(jogador.getDinheiro() - 200);
                         jogador.setVidaAtual(jogador.getVidaMaxima());
                         dao.atualizarJogador(idJogadorBanco, jogador);
+                        registrarHistorico("Tratamento médico clandestino realizado (-$200).");
                         animarCarregamento("Realizando tratamento clandestino");
                         System.out.println(VERDE_FORTE + "  ✔ Vida restaurada ao máximo e salva no banco!" + RESET);
                     } else {
@@ -222,6 +254,8 @@ public class Main {
                 } else if (opcao == 4) {
                     abrirMercadoNegro(scanner, jogador);
                     dao.atualizarJogador(idJogadorBanco, jogador);
+                } else if (opcao == 5) {
+                    imprimirRankingChefes();
                 } else if (opcao == 0) {
                     dao.atualizarJogador(idJogadorBanco, jogador);
                     jogando = false;
@@ -246,6 +280,31 @@ public class Main {
         } finally {
             scanner.close();
         }
+    }
+
+    private static void registrarHistorico(String evento) {
+        if (historicoAcoes.size() >= 3) {
+            historicoAcoes.removeFirst();
+        }
+        historicoAcoes.addLast(evento);
+    }
+
+    private static void imprimirHistoricoRecente() {
+        if (historicoAcoes.isEmpty()) return;
+        System.out.println(CINZA + "  📜 Últimas movimentações: " + RESET + AMARELO + historicoAcoes.getLast() + RESET);
+    }
+
+    private static void imprimirRankingChefes() throws SQLException {
+        List<String> ranking = dao.listarRankingChefes();
+        System.out.println("\n" + DOURADO + "╔═══════════════════════════ TOP 5 CHEFÕES DE ALBUQUERQUE ═══════════════════════════╗" + RESET);
+        if (ranking.isEmpty()) {
+            linhaCaixa(DOURADO, "  Nenhum registro encontrado no ranking ainda.", 84);
+        } else {
+            for (String linha : ranking) {
+                linhaCaixa(DOURADO, "  " + NEGRITO + linha + RESET, 84);
+            }
+        }
+        System.out.println(DOURADO + "╚════════════════════════════════════════════════════════════════════════════════════╝" + RESET);
     }
 
     private static void imprimirRadarTerritorios(List<Territorio> territorios, Gangue minhaGangue) {
@@ -302,7 +361,7 @@ public class Main {
         System.out.println(DOURADO + "╠════════════════════════════════════════════════════════════════════════════════════╣" + RESET);
         linhaCaixa(DOURADO, "  " + CIANO + "[1]" + RESET + " 🦺 Colete Balístico (+25 Vida Máxima imediata)              - " + VERDE_FORTE + "$300.00" + RESET, 84);
         linhaCaixa(DOURADO, "  " + CIANO + "[2]" + RESET + " 🍗 Balde Los Pollos (Cura +40 na mochila)                    - " + VERDE_FORTE + "$150.00" + RESET, 84);
-        linhaCaixa(DOURADO, "  " + CIANO + "[3]" + RESET + " 💎 Cristal Azul (Buff 2X Dano por 2 turnos na mochila)        - " + VERDE_FORTE + "$400.00" + RESET, 84);
+        linhaCaixa(DOURADO, "  " + CIANO + "[3]" + RESET + " 💎 Cristal Azul (Buff 1.5x Dano por 2 turnos na mochila)      - " + VERDE_FORTE + "$400.00" + RESET, 84);
         linhaCaixa(DOURADO, "  " + VERMELHO_FORTE + "[0]" + RESET + " Voltar", 84);
         System.out.println(DOURADO + "╚════════════════════════════════════════════════════════════════════════════════════╝" + RESET);
         int escolha = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Comprar item: " + RESET, 0, 3);
@@ -313,6 +372,7 @@ public class Main {
                 jogador.setDinheiro(jogador.getDinheiro() - 300);
                 jogador.setVidaMaxima(jogador.getVidaMaxima() + 25);
                 jogador.setVidaAtual(jogador.getVidaAtual() + 25);
+                registrarHistorico("Comprou Colete Balístico (+25 Vida Máx) com Saul Goodman.");
                 System.out.println(VERDE_FORTE + "  ✔ Colete equipado! Vida máxima subiu para " + jogador.getVidaMaxima() + "." + RESET);
             } else {
                 System.out.println(VERMELHO_FORTE + "  ✖ Dinheiro insuficiente!" + RESET);
@@ -322,6 +382,7 @@ public class Main {
                 jogador.setDinheiro(jogador.getDinheiro() - 150);
                 jogador.adicionarItem(new Item(1, "Balde do Los Pollos Hermanos", "CURA", 40, 0));
                 dao.adicionarItemInventario(idJogadorBanco, 1);
+                registrarHistorico("Comprou Balde Los Pollos no Mercado Negro.");
                 System.out.println(VERDE_FORTE + "  ✔ Balde do Los Pollos adicionado à mochila!" + RESET);
             } else {
                 System.out.println(VERMELHO_FORTE + "  ✖ Dinheiro insuficiente!" + RESET);
@@ -331,6 +392,7 @@ public class Main {
                 jogador.setDinheiro(jogador.getDinheiro() - 400);
                 jogador.adicionarItem(new Item(3, "Cristal Azul (Metanfetamina)", "BUFF_DANO", 2, 2));
                 dao.adicionarItemInventario(idJogadorBanco, 3);
+                registrarHistorico("Comprou Cristal Azul no Mercado Negro.");
                 System.out.println(VERDE_FORTE + "  ✔ Cristal Azul adicionado à mochila!" + RESET);
             } else {
                 System.out.println(VERMELHO_FORTE + "  ✖ Dinheiro insuficiente!" + RESET);
@@ -346,7 +408,7 @@ public class Main {
             }
         }
 
-        if (meusTerritorios.size() >= 2 && meusTerritorios.size() < territorios.size() && random.nextInt(100) < 35) {
+        if (meusTerritorios.size() >= 2 && meusTerritorios.size() < territorios.size() && random.nextInt(100) < 40) {
             Territorio atacado = meusTerritorios.get(random.nextInt(meusTerritorios.size()));
             Gangue invasora = gangues.get(random.nextInt(gangues.size()));
             while (invasora.getIdGangue() == jogador.getGangue().getIdGangue()) {
@@ -361,21 +423,24 @@ public class Main {
             int escolha = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Decisão: " + RESET, 1, 2);
 
             if (escolha == 1) {
-                Inimigo liderAtaque = new Inimigo(999, "Tenente de " + invasora.getNome(), 85, 15, atacado.getIdTerritorio());
+                Inimigo liderAtaque = new Inimigo(999, "Tenente de " + invasora.getNome(), 110, 17, atacado.getIdTerritorio());
                 boolean defendeu = lutarContraInimigo(scanner, jogador, liderAtaque, atacado, false);
                 if (defendeu && jogador.estaVivo()) {
                     int respeitoDefesa = invasora.getBonusAtaque() >= 14 ? 8 : 4;
                     System.out.println(VERDE_FORTE + "  ✔ Você repeliu o contra-ataque de " + invasora.getNome() + " e manteve " + atacado.getNome() + " (+" + respeitoDefesa + " Respeito)!" + RESET);
                     jogador.setNivelRespeito(jogador.getNivelRespeito() + respeitoDefesa);
+                    registrarHistorico("Defendeu " + atacado.getNome() + " contra " + invasora.getNome() + ".");
                     dao.atualizarJogador(idJogadorBanco, jogador);
                 } else if (jogador.estaVivo()) {
                     atacado.setGangueDominante(invasora);
                     dao.atualizarDonoTerritorio(atacado.getIdTerritorio(), invasora.getIdGangue());
+                    registrarHistorico("Perdeu " + atacado.getNome() + " para " + invasora.getNome() + ".");
                     System.out.println(VERMELHO_FORTE + "  ✖ Você recuou e perdeu o controle de " + atacado.getNome() + "!" + RESET);
                 }
             } else {
                 atacado.setGangueDominante(invasora);
                 dao.atualizarDonoTerritorio(atacado.getIdTerritorio(), invasora.getIdGangue());
+                registrarHistorico("Abandonou " + atacado.getNome() + " para " + invasora.getNome() + ".");
                 System.out.println(AMARELO + "  🏳️ Você abandonou " + atacado.getNome() + " para " + invasora.getNome() + "." + RESET);
             }
         }
@@ -388,15 +453,18 @@ public class Main {
             double suborno = Math.min(jogador.getDinheiro(), 100);
             if (suborno > 0) {
                 jogador.setDinheiro(jogador.getDinheiro() - suborno);
+                registrarHistorico("Pagou $" + suborno + " de suborno em batida da DEA.");
                 digitarLento("\n" + VERMELHO_FORTE + "  🚨 BATIDA DA DEA! Você pagou $" + suborno + " de suborno para escapar da emboscada." + RESET, 12);
             } else {
-                int dano = 15;
+                int dano = 18;
                 jogador.setVidaAtual(Math.max(1, jogador.getVidaAtual() - dano));
+                registrarHistorico("Fugiu de batida da DEA sem suborno (-" + dano + " HP).");
                 digitarLento("\n" + VERMELHO_FORTE + "  🚨 BATIDA DA DEA! Sem dinheiro para suborno, você fugiu trocando tiros (-" + dano + " de vida)." + RESET, 12);
             }
         } else if (sorteio <= 50) {
             double bonus = 150;
             jogador.setDinheiro(jogador.getDinheiro() + bonus);
+            registrarHistorico("Encontrou carregamento extra (+$" + bonus + ").");
             digitarLento("\n" + VERDE_FORTE + "  💰 CARREGAMENTO EXTRA! Um informante deixou $" + bonus + " escondidos no território!" + RESET, 12);
         }
     }
@@ -459,14 +527,15 @@ public class Main {
                     Math.max(0, inimigo.getVidaAtual()), vidaMaxInimigo);
             System.out.println(CINZA + "────────────────────────────────────────────────────────────────────────" + RESET);
             System.out.println("  " + CIANO + "[1]" + RESET + " 🔫 Atacar   |   "
-                    + ROXO + "[2]" + RESET + " 🎯 Tiro Certeiro (55% Crítico)   |   "
+                    + ROXO + "[2]" + RESET + " 🎯 Tiro Certeiro (45% Crítico)   |   "
                     + CIANO + "[3]" + RESET + " 🎒 Mochila   |   "
                     + AMARELO + "[4]" + RESET + " 🏃 Fugir");
 
             int acao = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Ação: " + RESET, 1, 4);
 
             if (acao == 1) {
-                int bonusPatente = jogador.getNivelRespeito() / 10 * 2;
+                // Bônus de patente mais contido (+1 a cada 15 de respeito)
+                int bonusPatente = jogador.getNivelRespeito() / 15;
                 int danoJogador = jogador.atacar() + bonusPatente;
                 inimigo.setVidaAtual(inimigo.getVidaAtual() - danoJogador);
                 System.out.println(VERDE_FORTE + "  💥 Você atacou " + inimigo.getNome() + " e causou " + danoJogador + " de dano!" + RESET);
@@ -477,9 +546,9 @@ public class Main {
                     System.out.println(VERMELHO_FORTE + "  🩸 " + inimigo.getNome() + " revidou e causou " + danoInimigo + " de dano!" + RESET);
                 }
             } else if (acao == 2) {
-                if (random.nextInt(100) < 55) {
-                    int bonusPatente = jogador.getNivelRespeito() / 10 * 2;
-                    int danoCritico = (jogador.atacar() + bonusPatente) * 2;
+                if (random.nextInt(100) < 45) {
+                    int bonusPatente = jogador.getNivelRespeito() / 15;
+                    int danoCritico = (int) Math.round((jogador.atacar() + bonusPatente) * 1.6);
                     inimigo.setVidaAtual(inimigo.getVidaAtual() - danoCritico);
                     System.out.println(DOURADO + NEGRITO + "  🎯 TIRO CERTEIRO! Dano crítico de " + danoCritico + " em " + inimigo.getNome() + "!" + RESET);
                 } else {
@@ -511,6 +580,7 @@ public class Main {
                 territorio.setGangueDominante(jogador.getGangue());
                 jogador.setDinheiro(jogador.getDinheiro() + territorio.getRecompensaDinheiro());
                 jogador.setNivelRespeito(jogador.getNivelRespeito() + respeitoGanho);
+                registrarHistorico("Dominou " + territorio.getNome() + " (+" + respeitoGanho + " Respeito).");
 
                 sortearLootTerritorio(jogador, territorio);
                 verificarEventoAleatorio(jogador);
