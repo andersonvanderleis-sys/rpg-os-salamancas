@@ -31,39 +31,86 @@ public class Main {
 
             imprimirBanner();
 
-            System.out.print(DOURADO + NEGRITO + "  ➤ Digite o nome do seu personagem: " + RESET);
-            String nomeJogador = scanner.nextLine();
-            if (nomeJogador.trim().isEmpty()) {
-                nomeJogador = "Salamanca";
+            Jogador jogador = null;
+            boolean iniciarNovoJogo = true;
+
+            System.out.println("\n" + DOURADO + "╔════════════════════════════════ MENU PRINCIPAL ════════════════════════════════╗" + RESET);
+            linhaCaixa(DOURADO, "  " + CIANO + "[1]" + RESET + " 🆕 Novo Jogo", 79);
+            linhaCaixa(DOURADO, "  " + CIANO + "[2]" + RESET + " 📂 Carregar Save", 80);
+            System.out.println(DOURADO + "╚════════════════════════════════════════════════════════════════════════════════╝" + RESET);
+            int modoInicio = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Opção: " + RESET, 1, 2);
+            scanner.nextLine(); // Limpa o Enter do teclado
+
+            if (modoInicio == 2) {
+                List<Jogador> saves = dao.listarJogadoresSalvos(gangues);
+                if (saves.isEmpty()) {
+                    System.out.println("\n" + AMARELO + NEGRITO + "  ⚠️  Você ainda não possui nenhum save registrado no banco! Iniciando um Novo Jogo..." + RESET);
+                } else {
+                    System.out.println("\n" + CIANO + "╔════════════════════════════════ SAVES DISPONÍVEIS ═══════════════════════════════╗" + RESET);
+                    for (int i = 0; i < saves.size(); i++) {
+                        Jogador s = saves.get(i);
+                        String linhaSave = String.format("  %s[%d]%s %s%-18s%s | %s%-22s%s | $%7.2f | Resp: %d",
+                                DOURADO, (i + 1), RESET,
+                                NEGRITO, s.getNome(), RESET,
+                                CIANO, s.getGangue().getNome(), RESET,
+                                s.getDinheiro(), s.getNivelRespeito());
+                        linhaCaixa(CIANO, linhaSave, 82);
+                    }
+                    linhaCaixa(CIANO, "  " + VERMELHO_FORTE + "[0]" + RESET + " Cancelar e criar Novo Jogo", 82);
+                    System.out.println(CIANO + "╚══════════════════════════════════════════════════════════════════════════════════╝" + RESET);
+
+                    int escolhaSave = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Escolha o save: " + RESET, 0, saves.size());
+                    scanner.nextLine(); // Limpa o Enter do teclado
+
+                    if (escolhaSave > 0) {
+                        jogador = saves.get(escolhaSave - 1);
+                        idJogadorBanco = jogador.getId();
+                        dao.carregarInventarioJogador(idJogadorBanco, jogador);
+                        iniciarNovoJogo = false;
+
+                        animarCarregamento("Carregando progresso do cartel de " + jogador.getNome());
+                        digitarLento("\n" + VERDE_FORTE + NEGRITO + "✔ Save carregado com sucesso! Bem-vindo de volta, "
+                                + jogador.getNome() + " [ID #" + idJogadorBanco + "]" + RESET, 15);
+                    }
+                }
             }
 
-            System.out.println("\n" + DOURADO + "╔══════════════════════════════ ESCOLHA SUA GANGUE ══════════════════════════════╗" + RESET);
-            for (int i = 0; i < gangues.size(); i++) {
-                Gangue g = gangues.get(i);
-                String linha = String.format("  %s[%d]%s %s%-27s%s | Ataque: %s+%2d%s | Caixa Inicial: %s$%6.2f%s",
-                        CIANO, (i + 1), RESET,
-                        NEGRITO, g.getNome(), RESET,
-                        VERMELHO_FORTE, g.getBonusAtaque(), RESET,
-                        VERDE_FORTE, g.getDinheiroInicial(), RESET);
-                linhaCaixa(DOURADO, linha, 80);
+            if (iniciarNovoJogo) {
+                System.out.print("\n" + DOURADO + NEGRITO + "  ➤ Digite o nome do seu personagem: " + RESET);
+                String nomeJogador = scanner.nextLine();
+                if (nomeJogador.trim().isEmpty()) {
+                    nomeJogador = "Salamanca";
+                }
+
+                System.out.println("\n" + DOURADO + "╔══════════════════════════════ ESCOLHA SUA GANGUE ══════════════════════════════╗" + RESET);
+                for (int i = 0; i < gangues.size(); i++) {
+                    Gangue g = gangues.get(i);
+                    String linha = String.format("  %s[%d]%s %s%-27s%s | Ataque: %s+%2d%s | Caixa Inicial: %s$%6.2f%s",
+                            CIANO, (i + 1), RESET,
+                            NEGRITO, g.getNome(), RESET,
+                            VERMELHO_FORTE, g.getBonusAtaque(), RESET,
+                            VERDE_FORTE, g.getDinheiroInicial(), RESET);
+                    linhaCaixa(DOURADO, linha, 80);
+                }
+                System.out.println(DOURADO + "╚════════════════════════════════════════════════════════════════════════════════╝" + RESET);
+                int escolhaGangue = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Opção: " + RESET, 1, gangues.size()) - 1;
+                Gangue gangueEscolhida = gangues.get(escolhaGangue);
+
+                animarCarregamento("Registrando cartel no banco de dados de Albuquerque");
+
+                jogador = new Jogador(1, nomeJogador, 100, 100, gangueEscolhida.getDinheiroInicial(), 0, gangueEscolhida);
+                idJogadorBanco = dao.salvarNovoJogador(jogador);
+
+                for (int i = 0; i < territorios.size(); i++) {
+                    Territorio t = territorios.get(i);
+                    Gangue rival = gangues.get((escolhaGangue + 1 + i) % gangues.size());
+                    t.setGangueDominante(rival);
+                    dao.atualizarDonoTerritorio(t.getIdTerritorio(), rival.getIdGangue());
+                }
+
+                digitarLento("\n" + VERDE_FORTE + NEGRITO + "✔ Bem-vindo ao cartel, " + jogador.getNome()
+                        + " (" + jogador.getGangue().getNome() + ")! [ID #" + idJogadorBanco + "]" + RESET, 15);
             }
-            System.out.println(DOURADO + "╚════════════════════════════════════════════════════════════════════════════════╝" + RESET);          int escolhaGangue = lerOpcao(scanner, DOURADO + NEGRITO + "  ➤ Opção: " + RESET, 1, gangues.size()) - 1;
-            Gangue gangueEscolhida = gangues.get(escolhaGangue);
-
-            animarCarregamento("Registrando cartel no banco de dados de Albuquerque");
-
-            Jogador jogador = new Jogador(1, nomeJogador, 100, 100, gangueEscolhida.getDinheiroInicial(), 0, gangueEscolhida);
-            idJogadorBanco = dao.salvarNovoJogador(jogador);
-
-            for (int i = 0; i < territorios.size(); i++) {
-                Territorio t = territorios.get(i);
-                Gangue rival = gangues.get((escolhaGangue + 1 + i) % gangues.size());
-                t.setGangueDominante(rival);
-                dao.atualizarDonoTerritorio(t.getIdTerritorio(), rival.getIdGangue());
-            }
-
-            digitarLento("\n" + VERDE_FORTE + NEGRITO + "✔ Bem-vindo ao cartel, " + jogador.getNome()
-                    + " (" + jogador.getGangue().getNome() + ")! [ID #" + idJogadorBanco + "]" + RESET, 15);
 
             boolean jogando = true;
             boolean zerouJogo = false;
@@ -215,7 +262,6 @@ public class Main {
         }
         System.out.println(CIANO + "╚══════════════════════════════════════════════════════════════════════════════════╝" + RESET);
     }
-
 
     private static int calcularRespeitoGanho(Territorio territorio) {
         int bonusGangueRival = (territorio.getGangueDominante() != null)
@@ -524,6 +570,7 @@ public class Main {
             jogador.usarItem(escolha - 1);
         }
     }
+
     private static void linhaCaixa(String corBorda, String conteudo, int larguraInterna) {
         String limpo = conteudo.replaceAll("\u001B\\[[;\\d]*m", "").replace("\uFE0F", "");
         double larguraVisual = 0.0;
@@ -578,15 +625,15 @@ public class Main {
                 "╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝"
         };
         String[] degrade = {
-                "\u001B[38;2;40;75;175m",    // Borda superior (Azul)
-                "\u001B[38;2;45;70;170m",    // Linha 1 letras (Azul)
-                "\u001B[38;2;52;62;162m",    // Linha 2 letras (Azul levemente arroxeado)
-                "\u001B[38;2;60;52;152m",    // Linha 3 letras (Transição suave)
-                "\u001B[38;2;68;42;142m",    // Linha 4 letras (Roxo escuro suave)
-                "\u001B[38;2;72;32;130m",    // Linha 5 letras (Roxo escuro)
-                "\u001B[38;2;75;25;118m",    // Linha 6 letras (Roxo escuro)
-                "\u001B[38;2;115;85;185m",   // Subtítulo (Tom médio para leitura)
-                "\u001B[38;2;75;25;118m"     // Borda inferior (Roxo escuro)
+                "\u001B[38;2;40;75;175m",
+                "\u001B[38;2;45;70;170m",
+                "\u001B[38;2;52;62;162m",
+                "\u001B[38;2;60;52;152m",
+                "\u001B[38;2;68;42;142m",
+                "\u001B[38;2;72;32;130m",
+                "\u001B[38;2;75;25;118m",
+                "\u001B[38;2;115;85;185m",
+                "\u001B[38;2;75;25;118m"
         };
 
         System.out.println(NEGRITO);

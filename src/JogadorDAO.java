@@ -121,16 +121,17 @@ public class JogadorDAO {
         return -1;
     }
 
-    // 5. Atualizar progresso do jogador (vida, dinheiro, respeito)
+    // 5. Atualizar progresso do jogador (vida, vida máxima, dinheiro, respeito)
     public void atualizarJogador(int idJogador, Jogador j) throws SQLException {
         if (modoOffline) return;
-        String sql = "UPDATE jogador SET vida_atual = ?, dinheiro = ?, nivel_respeito = ? WHERE id = ?";
+        String sql = "UPDATE jogador SET vida_atual = ?, vida_maxima = ?, dinheiro = ?, nivel_respeito = ? WHERE id = ?";
         try (Connection conn = ConexaoDB.conectar();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, j.getVidaAtual());
-            stmt.setDouble(2, j.getDinheiro());
-            stmt.setInt(3, j.getNivelRespeito());
-            stmt.setInt(4, idJogador);
+            stmt.setInt(2, j.getVidaMaxima());
+            stmt.setDouble(3, j.getDinheiro());
+            stmt.setInt(4, j.getNivelRespeito());
+            stmt.setInt(5, idJogador);
             stmt.executeUpdate();
         }
     }
@@ -156,6 +157,62 @@ public class JogadorDAO {
             stmt.setInt(1, idJogador);
             stmt.setInt(2, idItem);
             stmt.executeUpdate();
+        }
+    }
+
+    // 8. Listar todos os jogadores salvos no banco (para tela de Carregar Save)
+    public List<Jogador> listarJogadoresSalvos(List<Gangue> gangues) throws SQLException {
+        List<Jogador> salvos = new ArrayList<>();
+        if (modoOffline) return salvos;
+
+        String sql = "SELECT * FROM jogador ORDER BY id DESC";
+        try (Connection conn = ConexaoDB.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                int gangueId = rs.getInt("gangue_id");
+                Gangue gangueJogador = gangues.stream()
+                        .filter(g -> g.getIdGangue() == gangueId)
+                        .findFirst()
+                        .orElse(gangues.get(0));
+
+                salvos.add(new Jogador(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getInt("vida_atual"),
+                        rs.getInt("vida_maxima"),
+                        rs.getDouble("dinheiro"),
+                        rs.getInt("nivel_respeito"),
+                        gangueJogador
+                ));
+            }
+        }
+        return salvos;
+    }
+
+    // 9. Carregar os itens salvos na mochila do jogador
+    // 9. Carregar os itens salvos na mochila do jogador
+    public void carregarInventarioJogador(int idJogador, Jogador jogador) throws SQLException {
+        if (modoOffline) return;
+
+        String sql = "SELECT i.id_item, i.nome, i.tipo, i.valor_efeito, i.duracao_turnos " +
+                "FROM inventario_jogador ij " +
+                "INNER JOIN item i ON ij.item_id = i.id_item " +
+                "WHERE ij.jogador_id = ?";
+        try (Connection conn = ConexaoDB.conectar();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idJogador);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    jogador.getInventario().add(new Item(
+                            rs.getInt("id_item"),
+                            rs.getString("nome"),
+                            rs.getString("tipo"),
+                            rs.getInt("valor_efeito"),
+                            rs.getInt("duracao_turnos")
+                    ));
+                }
+            }
         }
     }
 }
