@@ -87,3 +87,15 @@ INSERT INTO item (id_item, nome, tipo, valor_efeito, duracao_turnos) VALUES
 (2, 'Chá de Camomila da Lydia', 'CURA', 25, 0),
 (3, 'Cristal Azul (Metanfetamina)', 'BUFF_DANO', 2, 2),
 (4, 'Cantil do Deserto', 'CURA', 30, 0);
+
+
+
+CREATE TABLE IF NOT EXISTS territorio_jogador (
+    jogador_id INT NOT NULL,
+    territorio_id INT NOT NULL,
+    gangue_dominante_id INT NOT NULL,
+    PRIMARY KEY (jogador_id, territorio_id),
+    FOREIGN KEY (jogador_id) REFERENCES jogador(id) ON DELETE CASCADE,
+    FOREIGN KEY (territorio_id) REFERENCES territorio(id_territorio),
+    FOREIGN KEY (gangue_dominante_id) REFERENCES gangue(id_gangue)
+);
